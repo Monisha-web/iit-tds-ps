@@ -72,7 +72,7 @@ async def read(path: str):
 async def a1(email: str, **kwargs):
     await run(
         f"""
-Install `uv` (if required) and run the script `https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/refs/heads/tds-2025-01-project-1-wip/project-1/datagen.py`
+Install `uv` (if required) and run the script `https://raw.githubusercontent.com/sanand0/tools-in-data-science-public/refs/heads/tds-2025-01/project-1/evaluate.py`
 with `{email}` as the only argument
 """
     )

@@ -83,31 +83,33 @@ def A5(log_dir_path='/data/logs', output_file_path='/data/logs-recent.txt', num_
 def A6(doc_dir_path='/data/docs', output_file_path='/data/docs/index.json'):
     import os
     import json
+    import re
     docs_dir = doc_dir_path
     index_data = {}
-
-    # Walk through all Markdown files in the docs directory recursively.
+    
+    # Regular expression to match an H1 header, allowing for leading whitespace.
+    h1_regex = re.compile(r'^\s*#\s+(.*)')
+    
+    # Walk through all files in the docs directory.
     for root, _, files in os.walk(docs_dir):
         for file in files:
             if file.endswith('.md'):
                 file_path = os.path.join(root, file)
                 with open(file_path, 'r', encoding='utf-8') as f:
                     for line in f:
-                        # Remove leading whitespace before checking for an H1 header.
-                        stripped_line = line.lstrip()
-                        if stripped_line.startswith('# '):
-                            title = stripped_line[2:].strip()
-                            # Compute the relative path from docs_dir (using forward slashes).
+                        match = h1_regex.match(line)
+                        if match:
+                            title = match.group(1).strip()
+                            # Compute the relative path from docs_dir and replace backslashes with forward slashes.
                             relative_path = os.path.relpath(file_path, docs_dir).replace('\\', '/')
                             index_data[relative_path] = title
-                            break  # Only consider the first H1 in each file.
+                            break  # Only the first H1 is needed.
     
     # Write the index data to the output file.
     with open(output_file_path, 'w', encoding='utf-8') as f:
         json.dump(index_data, f, indent=4)
     
     return index_data
-
 
 
 def A7(filename='/data/email.txt', output_file='/data/email-sender.txt'):
@@ -134,7 +136,11 @@ def png_to_base64(image_path):
     return base64_string
 
 def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
-    # Construct the request body for the AIProxy call
+    import os
+    import json
+    import requests
+
+    # Construct the request body with a clearer instruction.
     body = {
         "model": "gpt-4o-mini",
         "messages": [
@@ -143,7 +149,11 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
                 "content": [
                     {
                         "type": "text",
-                        "text": "There is 8 or more digit number is there in this image, with space after every 4 digit, only extract the those digit number without spaces and return just the number without any other characters"
+                        "text": (
+                            "Extract the 16-digit credit card number from this image. "
+                            "The image displays a credit card number with a space after every 4 digits. "
+                            "Return only the 16-digit number without any spaces or extra characters."
+                        )
                     },
                     {
                         "type": "image_url",
@@ -158,23 +168,29 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {AIPROXY_TOKEN}"
+        "Authorization": f"Bearer {os.getenv('AIPROXY_TOKEN')}"
     }
 
-    # Make the request to the AIProxy service
-    response = requests.post("http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
-                             headers=headers, data=json.dumps(body))
-    # response.raise_for_status()
-
-    # Extract the credit card number from the response
+    # Make the request to the AIProxy service.
+    response = requests.post(
+        "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
+        headers=headers,
+        data=json.dumps(body)
+    )
+    response.raise_for_status()
     result = response.json()
-    # print(result); return None
-    card_number = result['choices'][0]['message']['content'].replace(" ", "")
 
-    # Write the extracted card number to the output file
-    with open(filename, 'w') as file:
+    # Extract the card number from the response.
+    card_number = result['choices'][0]['message']['content'].strip()
+    # Remove any spaces if they exist.
+    card_number = card_number.replace(" ", "")
+    
+    # Write the extracted card number to the output file.
+    with open(filename, 'w', encoding="utf-8") as file:
         file.write(card_number)
-# A8()
+    
+    return card_number
+
 
 
 def get_embedding(text):

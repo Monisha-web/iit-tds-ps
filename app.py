@@ -199,25 +199,27 @@ function_definitions_llm = [
         }
     },
     {
-        "name": "A9",
-        "description": "Find similar comments from a text file and save them to an output file.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "filename": {
-                    "type": "string",
-                    "pattern": r".*/(.*\.txt)",
-                    "default": "/data/comments.txt"
-                },
-                "output_filename": {
-                    "type": "string",
-                    "pattern": r".*/(.*\.txt)",
-                    "default": "/data/comments-similar.txt"
-                }
-            },
-            "required": ["filename", "output_filename"]
-        }
+  "name": "A9",
+  "description": "Find similar comments from a text file and save them to an output file.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "filename": {
+        "type": "string",
+        "pattern": ".*/(.*\\.txt)",
+        "default": "/data/comments.txt",
+        "description": "Path to the text file containing comments, one per line."
+      },
+      "output_filename": {
+        "type": "string",
+        "pattern": ".*/(.*\\.txt)",
+        "default": "/data/comments-similar.txt",
+        "description": "Path where the most similar pair of comments will be saved."
+      }
     },
+    "required": ["filename", "output_filename"]
+  }
+},
     {
         "name": "A10",
         "description": "Identify high-value (gold) ticket sales from a database and save them to a text file.",
