@@ -135,12 +135,20 @@ def png_to_base64(image_path):
         base64_string = base64.b64encode(image_file.read()).decode('utf-8')
     return base64_string
 
+
 def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
     import os
     import json
     import requests
 
-    # Construct the request body with a clearer instruction.
+    # Refine the prompt to explicitly require exactly 16 digits.
+    prompt_text = (
+        "Extract exactly the 16-digit credit card number from this image. "
+        "The image shows a credit card number with a space after every 4 digits. "
+        "Return only the 16 digits with no spaces, punctuation, or any extra characters. "
+        "If the result is not exactly 16 digits, please output an error message."
+    )
+
     body = {
         "model": "gpt-4o-mini",
         "messages": [
@@ -149,11 +157,7 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
                 "content": [
                     {
                         "type": "text",
-                        "text": (
-                            "Extract the 16-digit credit card number from this image. "
-                            "The image displays a credit card number with a space after every 4 digits. "
-                            "Return only the 16-digit number without any spaces or extra characters."
-                        )
+                        "text": prompt_text
                     },
                     {
                         "type": "image_url",
@@ -171,7 +175,6 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
         "Authorization": f"Bearer {os.getenv('AIPROXY_TOKEN')}"
     }
 
-    # Make the request to the AIProxy service.
     response = requests.post(
         "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
         headers=headers,
@@ -180,17 +183,17 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
     response.raise_for_status()
     result = response.json()
 
-    # Extract the card number from the response.
-    card_number = result['choices'][0]['message']['content'].strip()
-    # Remove any spaces if they exist.
-    card_number = card_number.replace(" ", "")
+    # Extract the card number, remove any spaces.
+    card_number = result['choices'][0]['message']['content'].strip().replace(" ", "")
     
-    # Write the extracted card number to the output file.
-    with open(filename, 'w', encoding="utf-8") as file:
+    # Check that the result is exactly 16 digits.
+    if len(card_number) != 16 or not card_number.isdigit():
+        raise Exception(f"Transcribed card number '{card_number}' is not a valid 16-digit number")
+    
+    with open(filename, 'w', encoding='utf-8') as file:
         file.write(card_number)
     
     return card_number
-
 
 
 def get_embedding(text):
