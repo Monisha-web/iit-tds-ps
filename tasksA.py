@@ -32,12 +32,14 @@ def A1(email="23f2000136@ds.study.iitm.ac.in"):
         raise HTTPException(status_code=500, detail=f"Error: {e.stderr}")
 # A1()
 def A2(prettier_version="prettier@3.4.2", filename="/data/format.md"):
+    import subprocess
     command = [r"C:\Program Files\nodejs\npx.cmd", prettier_version, "--write", filename]
     try:
         subprocess.run(command, check=True)
         print("Prettier executed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
+
 
 def A3(filename='/data/dates.txt', targetfile='/data/dates-wednesdays.txt', weekday=2):
     input_file = filename
@@ -79,30 +81,34 @@ def A5(log_dir_path='/data/logs', output_file_path='/data/logs-recent.txt', num_
                 f_out.write(f"{first_line}\n")
 
 def A6(doc_dir_path='/data/docs', output_file_path='/data/docs/index.json'):
+    import os
+    import json
     docs_dir = doc_dir_path
-    output_file = output_file_path
     index_data = {}
 
-    # Walk through all files in the docs directory
+    # Walk through all Markdown files in the docs directory recursively.
     for root, _, files in os.walk(docs_dir):
         for file in files:
             if file.endswith('.md'):
-                # print(file)
                 file_path = os.path.join(root, file)
-                # Read the file and find the first occurrence of an H1
                 with open(file_path, 'r', encoding='utf-8') as f:
                     for line in f:
-                        if line.startswith('# '):
-                            # Extract the title text after '# '
-                            title = line[2:].strip()
-                            # Get the relative path without the prefix
+                        # Remove leading whitespace before checking for an H1 header.
+                        stripped_line = line.lstrip()
+                        if stripped_line.startswith('# '):
+                            title = stripped_line[2:].strip()
+                            # Compute the relative path from docs_dir (using forward slashes).
                             relative_path = os.path.relpath(file_path, docs_dir).replace('\\', '/')
                             index_data[relative_path] = title
-                            break  # Stop after the first H1
-    # Write the index data to index.json
-    # print(index_data)
-    with open(output_file, 'w', encoding='utf-8') as f:
+                            break  # Only consider the first H1 in each file.
+    
+    # Write the index data to the output file.
+    with open(output_file_path, 'w', encoding='utf-8') as f:
         json.dump(index_data, f, indent=4)
+    
+    return index_data
+
+
 
 def A7(filename='/data/email.txt', output_file='/data/email-sender.txt'):
     # Read the content of the email
@@ -126,38 +132,6 @@ def png_to_base64(image_path):
     with open(image_path, "rb") as image_file:
         base64_string = base64.b64encode(image_file.read()).decode('utf-8')
     return base64_string
-# def A8():
-#     input_image = "data/credit_card.png"
-#     output_file = "data/credit-card.txt"
-
-#     # Step 1: Extract text using OCR
-#     try:
-#         image = Image.open(input_image)
-#         extracted_text = pytesseract.image_to_string(image)
-#         print(f"Extracted text:\n{extracted_text}")
-#     except Exception as e:
-#         print(f"❌ Error reading or processing {input_image}: {e}")
-#         return
-
-#     # Step 2: Pass the extracted text to the LLM to validate and extract card number
-#     prompt = f"""Extract the credit card number from the following text. Respond with only the card number, without spaces:
-
-#     {extracted_text}
-#     """
-#     try:
-#         card_number = ask_llm(prompt).strip()
-#         print(f"Card number extracted by LLM: {card_number}")
-#     except Exception as e:
-#         print(f"❌ Error processing with LLM: {e}")
-#         return
-
-#     # Step 3: Save the extracted card number to a text file
-#     try:
-#         with open(output_file, "w", encoding="utf-8") as file:
-#             file.write(card_number + "\n")
-#         print(f"✅ Credit card number saved to: {output_file}")
-#     except Exception as e:
-#         print(f"❌ Error writing {output_file}: {e}")
 
 def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
     # Construct the request body for the AIProxy call
@@ -203,43 +177,63 @@ def A8(filename='/data/credit_card.txt', image_path='/data/credit_card.png'):
 # A8()
 
 
-
 def get_embedding(text):
+    api_key = os.getenv("AIPROXY_TOKEN")
+    if not api_key:
+        raise Exception("AIPROXY_TOKEN not set")
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {AIPROXY_TOKEN}"
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
     }
     data = {
-        "model": "text-embedding-3-small",
-        "input": [text]
+        "model": "text-embedding-3-small",  # or the model you intend to use
+        "input": text
     }
-    response = requests.post("http://aiproxy.sanand.workers.dev/openai/v1/embeddings", headers=headers, data=json.dumps(data))
-    response.raise_for_status()
-    return response.json()["data"][0]["embedding"]
+    response = https.post("https://aiproxy.sanand.workers.dev/openai/v1/embeddings", headers=headers, json=data)
+    response.raise_for_status()  # Will raise an HTTPError if status is 4xx or 5xx
+    result = response.json()
+    if "data" not in result:
+        raise Exception("Response JSON does not contain 'data': " + json.dumps(result))
+    # Extract the embedding (assuming the response data is a list with at least one element)
+    embedding = result["data"][0]["embedding"]
+    return embedding
+
+def cosine(vec1, vec2):
+    # Compute cosine similarity between two numpy arrays.
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+    dot = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 == 0 or norm2 == 0:
+        return 1.0
+    return 1 - dot / (norm1 * norm2)
 
 def A9(filename='/data/comments.txt', output_filename='/data/comments-similar.txt'):
     # Read comments
-    with open(filename, 'r') as f:
-        comments = [line.strip() for line in f.readlines()]
-
+    with open(filename, 'r', encoding="utf-8") as f:
+        comments = [line.strip() for line in f.readlines() if line.strip()]
+    
     # Get embeddings for all comments
     embeddings = [get_embedding(comment) for comment in comments]
-
-    # Find the most similar pair
+    
+    # Find the most similar pair (lowest cosine distance)
     min_distance = float('inf')
     most_similar = (None, None)
-
+    
     for i in range(len(comments)):
         for j in range(i + 1, len(comments)):
             distance = cosine(embeddings[i], embeddings[j])
             if distance < min_distance:
                 min_distance = distance
                 most_similar = (comments[i], comments[j])
-
+    
     # Write the most similar pair to file
-    with open(output_filename, 'w') as f:
+    with open(output_filename, 'w', encoding="utf-8") as f:
         f.write(most_similar[0] + '\n')
         f.write(most_similar[1] + '\n')
+    
+    return most_similar
 
 def A10(filename='/data/ticket-sales.db', output_filename='/data/ticket-sales-gold.txt', query="SELECT SUM(units * price) FROM tickets WHERE type = 'Gold'"):
     # Connect to the SQLite database

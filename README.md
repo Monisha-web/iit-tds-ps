@@ -6,12 +6,17 @@ Docker Image URL - https://hub.docker.com/r/monisha195/iit-tds-ps
 
 Github URL - https://github.com/Monisha-web/iit-tds-ps
 
-# Instructions to run code locally:
+# Instructions to run code locally for phase A:
 uv run datagen.py 23f2000136@ds.study.iitm.ac.in
 
 uv run app.py
 
 uv run evaluate.py --email=23f2000136@ds.study.iitm.ac.in --log-level=INFO
+
+# Instructions to run code locally for phase B:
+uv run datagen_phaseb.py 23f2000136@ds.study.iitm.ac.in
+
+uv run evaluate_phaseb.py --log-level=INFO
 
 # Instructions to build docker locally:
 docker build -t monisha195/iit-tds-ps .

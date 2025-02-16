@@ -43,42 +43,6 @@ app.add_middleware(
 app = FastAPI()
 load_dotenv()
 
-# @app.get('/ask')
-# def ask(prompt: str):
-#     """ Prompt Gemini to generate a response based on the given prompt. """
-#     gemini_api_key = os.getenv('gemini_api_key')
-#     if not gemini_api_key:
-#         return JSONResponse(content={"error": "GEMINI_API_KEY not set"}, status_code=500)
-
-#     # Read the contents of tasks.py
-#     with open('tasks.py', 'r') as file:
-#         tasks_content = file.read()
-
-#     # Prepare the request data
-#     data = {
-#         "contents": [{
-#             "parts": [
-#                 {"text": f"Find the task function from here for the below prompt:\n{tasks_content}\n\nPrompt: {prompt}\n\n respond with the function_name and function_parameters with parameters in json format"},
-#             ]
-#         }]
-#     }
-
-#     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_api_key}"
-#     headers = {
-#         "Content-Type": "application/json"
-#     }
-
-#     response = requests.post(url, json=data, headers=headers)
-
-#     if response.status_code == 200:
-#         text_reponse = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-#         match = re.search(r'```json\n(.*?)\n```', text_reponse, re.DOTALL)
-#         text_reponse = match.group(1).strip() if match else text_reponse
-#         return json.loads(text_reponse)
-#         # return JSONResponse(content=response.json(), status_code=200)
-#     else:
-#         return JSONResponse(content={"error": "Failed to get response", "details": response.text}, status_code=response.status_code)
-
 @app.get("/ask")
 def ask(prompt: str):
     result = get_completions(prompt)
@@ -314,6 +278,38 @@ function_definitions_llm = [
         }
     },
     {
+  "name": "B4",
+  "description": "Clone a git repository from the specified URL into a target directory under /data. Then, inside that repository, create a file with the given name and content, and commit the change with the provided commit message.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "pattern": "^(https?://.*|file://.*)$",
+        "description": "URL of the git repository to clone. It can be an HTTP URL or a file URL."
+      },
+      "target_dir": {
+        "type": "string",
+        "pattern": "^/data/.*",
+        "description": "Target directory (under /data) where the repository will be cloned."
+      },
+      "filename": {
+        "type": "string",
+        "description": "Name of the new file to create in the cloned repository."
+      },
+      "filecontent": {
+        "type": "string",
+        "description": "Content to write into the new file."
+      },
+      "commit_message": {
+        "type": "string",
+        "description": "Commit message for the new file."
+      }
+    },
+    "required": ["repo_url", "target_dir", "filename", "filecontent", "commit_message"]
+    }
+    },
+    {
         "name": "B5",
         "description": "Execute a SQL query on a specified database file and save the result to an output file.",
         "parameters": {
@@ -357,36 +353,57 @@ function_definitions_llm = [
             "required": ["url", "output_filename"]
         }
     },
-    {
-        "name": "B7",
-        "description": "Process an image by optionally resizing it and saving the result to an output path.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "image_path": {
-                    "type": "string",
-                    "pattern": r".*/(.*\.(jpg|jpeg|png|gif|bmp))",
-                    "description": "Path to the input image file."
-                },
-                "output_path": {
-                    "type": "string",
-                    "pattern": r".*/.*",
-                    "description": "Path to save the processed image."
-                },
-                "resize": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "minItems": 2,
-                    "maxItems": 2,
-                    "description": "Optional. Resize dimensions as [width, height]."
-                }
-            },
-            "required": ["image_path", "output_path"]
-        }
+{
+  "name": "B7",
+  "description": "Process an image by optionally resizing it and saving the result to an output path.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "image_path": {
+        "type": "string",
+        "pattern": "^.*/.*\\.(jpg|jpeg|png|gif|bmp)$",
+        "description": "Path to the input image file."
+      },
+      "output_path": {
+        "type": "string",
+        "pattern": "^.*/.*$",
+        "description": "Path to save the processed image."
+      },
+      "resize": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "Optional. Resize dimensions as [width, height]."
+      }
     },
+    "required": ["image_path", "output_path"]
+  }
+},
+{
+  "name": "B8",
+  "description": "Transcribe audio from an MP3 file and save the transcript to the specified output path.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "audio_path": {
+        "type": "string",
+        "pattern": "^.*/.*\\.mp3$",
+        "description": "Path to the MP3 file to be transcribed."
+      },
+      "output_path": {
+        "type": "string",
+        "pattern": "^.*/.*$",
+        "description": "Path where the transcript will be saved."
+      }
+    },
+    "required": ["audio_path", "output_path"]
+  }
+},
+
     {
         "name": "B9",
         "description": "Convert a Markdown file to another format and save the result to the specified output path.",
@@ -406,7 +423,37 @@ function_definitions_llm = [
             },
             "required": ["md_path", "output_path"]
         }
-    }
+    },
+
+    {
+  "name": "B10",
+  "description": "Filter the CSV file and return JSON data by filtering rows where the specified column equals the given value, then saving the output to the specified path.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "csv_path": {
+        "type": "string",
+        "pattern": ".*/(.*\\.csv)$",
+        "description": "Path to the CSV file to be filtered."
+      },
+      "filter_column": {
+        "type": "string",
+        "description": "Name of the column to filter by."
+      },
+      "filter_value": {
+        "type": "string",
+        "description": "Value to filter the rows on."
+      },
+      "output_path": {
+        "type": "string",
+        "pattern": ".*/.*",
+        "description": "Path where the filtered JSON data will be saved."
+      }
+    },
+    "required": ["csv_path", "filter_column", "filter_value", "output_path"]
+  }
+}
+
 
 ]
 
